@@ -23,7 +23,11 @@ from .omen.optimizer import Optimizer
 from .omen.input_file_io import load_rules
 from .omen.markov_cracker import MarkovCracker
 
-
+class FoundIthPassword(Exception):
+    def __init__(self, guess, target_candidate):
+        self.guess = guess
+        self.target_candidate = target_candidate
+        
 class PcfgGrammar:
     """
     Responsible for holding all the information about the PCFG Grammar
@@ -37,7 +41,8 @@ class PcfgGrammar:
         skip_brute = False,
         skip_case = False,
         debug = False,
-        base_structure_folder = "Grammar"):
+        base_structure_folder = "Grammar",
+        target_candidate = None): # Added target for retrieving the i-th password
         """
         Initializes the class and all the data structures
 
@@ -67,6 +72,9 @@ class PcfgGrammar:
         Returns:
             PcfgGrammar
         """
+        
+        self.target_candidate = target_candidate
+        self.current_guess = 0
 
         # Debugging and Status Information
         self.rulename = rule_name
@@ -486,20 +494,25 @@ class PcfgGrammar:
         Returns:
             None
         """
-
-        if not self.debug:
-            try:
-                print(guess)
-            # While I could silently replace/ignore the Unicode character for now I
-            # want to provide a good spot to debug if this is happening
-            except UnicodeEncodeError:
-                pass
-            except:
-                print('',file=sys.stderr)
-                print("The consumer, probably the password cracker, has stopped",file=sys.stderr)
-                print("accepting input.",file=sys.stderr)
-                print("Halting guess generation and exiting",file=sys.stderr)
-                raise OSError
+        if self.target_candidate is not None:
+            self.current_guess += 1
+            if self.current_guess == self.target_candidate:
+                raise FoundIthPassword(guess, self.target_candidate)
+            return
+        else:
+            if not self.debug:
+                try:
+                    print(guess)
+                # While I could silently replace/ignore the Unicode character for now I
+                # want to provide a good spot to debug if this is happening
+                except UnicodeEncodeError:
+                    pass
+                except:
+                    print('',file=sys.stderr)
+                    print("The consumer, probably the password cracker, has stopped",file=sys.stderr)
+                    print("accepting input.",file=sys.stderr)
+                    print("Halting guess generation and exiting",file=sys.stderr)
+                    raise OSError
 
 
     def find_children(self, pt_item):
@@ -1034,3 +1047,4 @@ class PcfgGrammar:
         pt_item['prob'] = self._find_prob(pt_item['pt'], pt_item['base_prob'])
 
         return pt_item
+    

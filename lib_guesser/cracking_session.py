@@ -19,7 +19,7 @@ import threading # Used only for the "check for user input" threads
 # Local imports
 from .priority_queue import PcfgQueue
 from .status_report import StatusReport
-
+from .pcfg_grammar import FoundIthPassword
 
 class CrackingSession:
     """
@@ -49,115 +49,121 @@ class CrackingSession:
         self.pqueue = None
 
     def run(self, load_session = False, limit = None):
-        """
-        Starts the cracking session and starts generating guesses
-        """
+        try:
+            """
+            Starts the cracking session and starts generating guesses
+            """
 
-        ## New session
-        #
-        if not load_session:
-
-            # Initalize the priority queue
-            self.pqueue = PcfgQueue(self.pcfg)
-
-            # Save the inital restore file
-            self._save_session()
-
-        ## Load session described in previously saved configfile
-        #
-        else:
-            print ("Restoring saved progress...",file=sys.stderr)
-            # Update the status report so things like probability coverage
-            # reflect what was done before
-            self.report.load(self.save_config)
-
-            # Update the priority queue to skip over pre-terminals that have
-            # been guessed previously
-            self.pqueue = PcfgQueue(self.pcfg, self.save_config)
-
-        print ("Starting to generate password guesses",file=sys.stderr)
-        print ("Press [ENTER] to display a status output",file=sys.stderr)
-        print ("Press 'q' [ENTER] to exit",file=sys.stderr)
-
-        ## Set up the check to see if a user is pressing a button
-        #
-        user_thread = threading.Thread(target=keypress, args=(self.report, self.pcfg))
-        user_thread.daemon = True  # thread dies when main thread (only non-daemon thread) exits.
-        user_thread.start()
-
-        ## Check to see if we are restoring an OMEN session
-        #
-        if load_session:
-            # If true, we need to restart an OMEN guessing session
-            if self.save_config.has_option('guessing_info','omen_guess_number'):
-
-                # Create a fake pt_item for the status reports while generating
-                # OMEN guesses. Will fill it in when we restore OMEN session
-                self.report.pt_item = {
-                    'prob': self.save_config.getfloat('guessing_info','max_probability'),
-                    'pt':[['M',1,1]],
-                    'level':1,
-                }
-
-                omen_guess_num = self.save_config.getint('guessing_info','omen_guess_number')
-                num_generated_guesses = self.pcfg.restore_omen(omen_guess_num, self.report.pt_item)
-                self.report.num_guesses += num_generated_guesses
-
-        # Keep running while the p_queue.next_function still has items in it
-        while True:
-
-            # Get the next item from the pqueue
-            pt_item = self.pqueue.next()
-
-            # If the pqueue is empty, there are no more guesses to make
-            if pt_item is None:
-                print ("Done processing the PCFG. No more guesses to generate",file=sys.stderr)
-                print ("Shutting down guessing session",file=sys.stderr)
-                return
-
-            # Check to see if the program should exit based on user input
+            ## New session
             #
-            # DevNote: Doing this after we get an item from the pqueue so if
-            #          the session shuts down we save the probability of
-            #          this item and don't repeat the previous pt that was
-            #          popped off and already guessed.
-            #
-            #          Note: In some rare cases the probability of this pt and
-            #          the prev one might be the same in which case both will
-            #          be repeated if this session restarts. That's not ideal
-            #          but shouldn't have a noticable impact when people restarts
-            #          sessions.
-            #
-            if not user_thread.is_alive():
-                print("Saving Session Info",file=sys.stderr)
+            if not load_session:
+
+                # Initalize the priority queue
+                self.pqueue = PcfgQueue(self.pcfg)
+
+                # Save the inital restore file
                 self._save_session()
-                print("Exiting...",file=sys.stderr)
-                break
 
-            # Update stats after the save might occur so we don't double count
-            # them when restoring a session
-            self.report.num_parse_trees += 1
-            self.report.pt_item = pt_item
+            ## Load session described in previously saved configfile
+            #
+            else:
+                print ("Restoring saved progress...",file=sys.stderr)
+                # Update the status report so things like probability coverage
+                # reflect what was done before
+                self.report.load(self.save_config)
 
-            try:
-                num_generated_guesses = self.pcfg.create_guesses(pt_item['pt'], limit = limit)
-                self.report.num_guesses += num_generated_guesses
+                # Update the priority queue to skip over pre-terminals that have
+                # been guessed previously
+                self.pqueue = PcfgQueue(self.pcfg, self.save_config)
 
-                # Check if a limit was defined
-                if limit:
-                    limit = limit - num_generated_guesses
-                    if limit <= 0:
-                        print("Limit reached. Exiting...",file=sys.stderr)
-                        break
+            #print ("Starting to generate password guesses",file=sys.stderr)
+            print('--------------------------------------------------',file=sys.stderr)
+            print (">> Press [ENTER] to display a status output",file=sys.stderr)
+            print (">> Press 'q' [ENTER] to exit",file=sys.stderr)
+            print('--------------------------------------------------\n',file=sys.stderr)
 
-                self.report.probability_coverage += pt_item['prob'] * num_generated_guesses
+            ## Set up the check to see if a user is pressing a button
+            #
+            user_thread = threading.Thread(target=keypress, args=(self.report, self.pcfg))
+            user_thread.daemon = True  # thread dies when main thread (only non-daemon thread) exits.
+            user_thread.start()
 
-            # The receiving program is no longer accepting guesses
-            # Usually occurs after all passwords have been cracked
-            except OSError:
-                break
+            ## Check to see if we are restoring an OMEN session
+            #
+            if load_session:
+                # If true, we need to restart an OMEN guessing session
+                if self.save_config.has_option('guessing_info','omen_guess_number'):
 
-        return
+                    # Create a fake pt_item for the status reports while generating
+                    # OMEN guesses. Will fill it in when we restore OMEN session
+                    self.report.pt_item = {
+                        'prob': self.save_config.getfloat('guessing_info','max_probability'),
+                        'pt':[['M',1,1]],
+                        'level':1,
+                    }
+
+                    omen_guess_num = self.save_config.getint('guessing_info','omen_guess_number')
+                    num_generated_guesses = self.pcfg.restore_omen(omen_guess_num, self.report.pt_item)
+                    self.report.num_guesses += num_generated_guesses
+
+            # Keep running while the p_queue.next_function still has items in it
+            while True:
+
+                # Get the next item from the pqueue
+                pt_item = self.pqueue.next()
+
+                # If the pqueue is empty, there are no more guesses to make
+                if pt_item is None:
+                    print ("Done processing the PCFG. No more guesses to generate",file=sys.stderr)
+                    print ("Shutting down guessing session",file=sys.stderr)
+                    return
+
+                # Check to see if the program should exit based on user input
+                #
+                # DevNote: Doing this after we get an item from the pqueue so if
+                #          the session shuts down we save the probability of
+                #          this item and don't repeat the previous pt that was
+                #          popped off and already guessed.
+                #
+                #          Note: In some rare cases the probability of this pt and
+                #          the prev one might be the same in which case both will
+                #          be repeated if this session restarts. That's not ideal
+                #          but shouldn't have a noticable impact when people restarts
+                #          sessions.
+                #
+                if not user_thread.is_alive():
+                    print("Saving Session Info",file=sys.stderr)
+                    self._save_session()
+                    print("Exiting...",file=sys.stderr)
+                    break
+
+                # Update stats after the save might occur so we don't double count
+                # them when restoring a session
+                self.report.num_parse_trees += 1
+                self.report.pt_item = pt_item
+
+                try:
+                    num_generated_guesses = self.pcfg.create_guesses(pt_item['pt'], limit = limit)
+                    self.report.num_guesses += num_generated_guesses
+
+                    # Check if a limit was defined
+                    if limit:
+                        limit = limit - num_generated_guesses
+                        if limit <= 0:
+                            print("Limit reached. Exiting...",file=sys.stderr)
+                            break
+
+                    self.report.probability_coverage += pt_item['prob'] * num_generated_guesses
+
+                # The receiving program is no longer accepting guesses
+                # Usually occurs after all passwords have been cracked
+                except OSError:
+                    break
+
+            return
+        
+        except FoundIthPassword as e:
+            print(f'Found {e.target_candidate}th password: {e.guess}')
 
     def _save_session(self):
         """

@@ -138,6 +138,13 @@ def parse_command_line(program_info):
         type=int,
         default=program_info['limit']
     )
+    
+    parser.add_argument(
+        '--ith',
+        '-i',
+        help='Generate the i-th most probable guess and then exit.',
+        type=int
+    )
 
     parser.add_argument(
         '--skip_brute',
@@ -191,6 +198,7 @@ def parse_command_line(program_info):
 
     # Advanced Options
     program_info['limit'] = args.limit
+    program_info['ith'] = args.ith
     program_info['skip_brute'] = args.skip_brute
     program_info['skip_case'] = args.skip_case
     program_info['cracking_mode'] = args.mode
@@ -231,6 +239,7 @@ def main():
         'session_name':'default_run',
         'load_session':False,
         'limit': None,
+        'ith': None,
 
         # Cracking Mode options
         'cracking_mode':'true_prob_order',
@@ -288,7 +297,8 @@ def main():
             save_filename,
             skip_brute = program_info['skip_brute'],
             skip_case = program_info['skip_case'],
-            debug = program_info['debug']
+            debug = program_info['debug'],
+            target_candidate = program_info['ith'] # i-th most probable guess
             )
 
     except:
