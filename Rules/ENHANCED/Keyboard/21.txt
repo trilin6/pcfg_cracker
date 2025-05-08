@@ -1,0 +1,5 @@
+1q2w3e4r5t6y7u8i9o0p-	0.5555555555555556
+azsxdcfvgbhnjmk,l.;/'	0.1111111111111111
+zxcvbnm,./';lkjhgfdsa	0.1111111111111111
+';lkjhgfdsazxcvbnm,./	0.1111111111111111
+asdfghjkl;'/.,mnbvcxz	0.1111111111111111

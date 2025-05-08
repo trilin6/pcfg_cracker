@@ -16,6 +16,8 @@ Rules/*
 # Don't ignore the default ruleset
 !Rules/Default
 !Rules/Russian
+!Rules/DEFAULT-LARGE
+!Rules/ENHANCED
 
 # Don't include the build files for documents
 docs/build/*

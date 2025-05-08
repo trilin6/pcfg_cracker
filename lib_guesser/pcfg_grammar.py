@@ -81,7 +81,6 @@ class PcfgGrammar:
         self.debug = debug
         self.ruleset_info = None
 
-        # If an exception occurs below, don't catch it here, pass it back up the stack
         self.grammar, self.base, self.ruleset_info = load_grammar(
             rule_name,
             base_directory,
@@ -100,8 +99,9 @@ class PcfgGrammar:
 
         omen_directory = os.path.join(base_directory, "Omen")
 
+
         # Load the OMEN rules from disk
-        if not load_rules(omen_directory, self.omen_grammar):
+        if not load_rules(omen_directory, self.omen_grammar): 
             print("Error reading the OMEN ruleset", file=sys.stderr)
             raise Exception
 
